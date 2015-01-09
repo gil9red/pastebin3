@@ -1,29 +1,37 @@
-__author__ = 'ipetrash'
-
-# # https://pypi.python.org/pypi/Pastebin/1.1.1
-# # http://pythonhosted.org/Pastebin/
-# # https://github.com/Morrolan/PastebinAPI
-# # http://pastebin.com/u/gil9red
-# # http://pastebin.com/api
-
 import requests
 
+__author__ = 'ipetrash'
 
-class PastebinRequestError(Exception):
+
+# http://pastebin.com/api
+
+
+class PastebinError(Exception):
+    pass
+
+class PastebinRequestError(PastebinError):
     pass
 
 
 # TODO: requests replaced by urllib
 # TODO: docstring
+# TODO: correct comments and strings: my bad english :(
 
 
 PASTEBIN_API_VERSION = '3.1'
 
-API_LOGIN_URL = 'http://pastebin.com/api/api_login.php'
-API_POST_URL = 'http://pastebin.com/api/api_post.php'
+__API_LOGIN_URL = 'http://pastebin.com/api/api_login.php'
+__API_POST_URL = 'http://pastebin.com/api/api_post.php'
+
+# We have 3 valid values available which you can use with the 'api_paste_private' parameter:
+__PRIVATE_VARIANTS = {
+    'public': 0,
+    'unlisted': 1,
+    'private': 2
+}
 
 
-def send_post_request_by_pastebin(url, params):
+def __send_post_request_by_pastebin(url, params):
     """
 
     :param url:
@@ -42,7 +50,11 @@ def send_post_request_by_pastebin(url, params):
     return rs
 
 
-def get_api_user_key(dev_key, user_name, user_password):
+def __send_api_post_request(params):
+    return __send_post_request_by_pastebin(__API_POST_URL, params)
+
+
+def api_user_key(dev_key, user_name, user_password):
     """
 
     :param dev_key:
@@ -57,12 +69,12 @@ def get_api_user_key(dev_key, user_name, user_password):
         'api_user_password': user_password,
     }
 
-    rs = send_post_request_by_pastebin(API_LOGIN_URL, params)
+    rs = __send_post_request_by_pastebin(__API_LOGIN_URL, params)
     return rs.text
 
 
-def get_user_pastes(dev_key, user_key, results_limit=50):
-    """ Pastes Created By A User
+def user_pastes(dev_key, user_key, results_limit=50):
+    """ Listing Pastes Created By A User
 
     :param dev_key:
     :param user_key:
@@ -77,11 +89,11 @@ def get_user_pastes(dev_key, user_key, results_limit=50):
         'api_option': 'list',
     }
 
-    rs = send_post_request_by_pastebin(API_POST_URL, params)
+    rs = __send_api_post_request(params)
     return rs.text
 
 
-def get_trending(dev_key):
+def trending(dev_key):
     """ Listing Trending Pastes
 
     :param dev_key:
@@ -93,12 +105,12 @@ def get_trending(dev_key):
         'api_option': 'trends',
     }
 
-    rs = send_post_request_by_pastebin(API_POST_URL, params)
+    rs = __send_api_post_request(params)
     return rs.text
 
 
 def paste(dev_key, code, user_key=None, name=None, format=None, private=None, expire_date=None):
-    """
+    """ Creating A New Paste
 
     :param dev_key:
     :param code:
@@ -110,14 +122,12 @@ def paste(dev_key, code, user_key=None, name=None, format=None, private=None, ex
     :return:
     """
 
+    if private:
+        private = __PRIVATE_VARIANTS.get(private.lower())
 
-    # TODO: support when private=2
-    # TODO: support string private
-    # private:
-    # 0 = Public
-    # 1 = Unlisted
-    # 2 = Private (only allowed in combination with api_user_key, as you have to be logged
-    # into your account to access the paste)
+        if private == 2 and user_key is None:
+            raise PastebinError('Private paste only allowed in combination with api_user_key, '
+                                'as you have to be logged into your account to access the paste')
 
     params = {
         'api_dev_key': dev_key,
@@ -131,12 +141,12 @@ def paste(dev_key, code, user_key=None, name=None, format=None, private=None, ex
         'api_paste_expire_date': expire_date,
     }
 
-    rs = send_post_request_by_pastebin(API_POST_URL, params)
+    rs = __send_api_post_request(params)
     return rs.text
 
 
 def delete_paste(dev_key, user_key, paste_key):
-    """
+    """ Deleting A Paste Created By A User
 
     :param dev_key:
     :param user_key:
@@ -151,15 +161,15 @@ def delete_paste(dev_key, user_key, paste_key):
         'api_option': 'delete',
     }
 
-    rs = send_post_request_by_pastebin(API_POST_URL, params)
+    rs = __send_api_post_request(params)
     if rs.text.startswith('Paste Removed'):
         return True
 
     return False
 
 
-def get_user_details(dev_key, user_key):
-    """
+def user_details(dev_key, user_key):
+    """ Getting A Users Information And Settings
 
     :param dev_key:
     :param user_key:
@@ -172,5 +182,5 @@ def get_user_details(dev_key, user_key):
         'api_option': 'userdetails',
     }
 
-    rs = send_post_request_by_pastebin(API_POST_URL, params)
+    rs = __send_api_post_request(params)
     return rs.text
