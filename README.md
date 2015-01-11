@@ -29,7 +29,7 @@ print(api_user_key)
 ```
 
 
-**paste** without api_user_key anonymous:
+**Paste** without api_user_key anonymous:
 
 ```python
 import pastebin3
@@ -84,7 +84,7 @@ print(rs)
 ```
 
 
-Return an XML list of all **pastes by user**.  Result limit defaults to none, so it will return all pastes:
+Return an XML list of all **pastes by user**:
 
 ```python
 import pastebin3
