@@ -1,4 +1,8 @@
-import requests
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from urllib.request import urlopen
+from urllib.parse import urlencode
 
 __author__ = 'ipetrash'
 
@@ -9,11 +13,11 @@ __author__ = 'ipetrash'
 class PastebinError(Exception):
     pass
 
+
 class PastebinRequestError(PastebinError):
     pass
 
 
-# TODO: requests replaced by urllib
 # TODO: docstring
 # TODO: correct comments and strings: my bad english :(
 
@@ -39,15 +43,25 @@ def __send_post_request_by_pastebin(url, params):
     :return:
     """
 
-    rs = requests.post(url, data=params)
+    # Remove None params
+    params = {
+        k: v
+        for k, v in params.items()
+        if v
+    }
 
-    if not rs.ok:
-        raise PastebinRequestError('HTTP status code: ' + str(rs.status_code))
+    params = urlencode(params).encode('utf-8')
 
-    if rs.text.startswith('Bad API request'):
-        raise PastebinRequestError(rs.text)
+    with urlopen(url, params) as f:
+        if f.getcode() != 200:
+            raise PastebinRequestError('HTTP status code: ' + str(f.getcode()))
 
-    return rs
+        rs = f.read().decode("utf-8")
+
+        if rs.startswith('Bad API request'):
+            raise PastebinRequestError(rs)
+
+        return rs
 
 
 def __send_api_post_request(params):
@@ -70,7 +84,7 @@ def api_user_key(dev_key, user_name, user_password):
     }
 
     rs = __send_post_request_by_pastebin(__API_LOGIN_URL, params)
-    return rs.text
+    return rs
 
 
 def user_pastes(dev_key, user_key, results_limit=50):
@@ -90,7 +104,7 @@ def user_pastes(dev_key, user_key, results_limit=50):
     }
 
     rs = __send_api_post_request(params)
-    return rs.text
+    return rs
 
 
 def trending(dev_key):
@@ -106,7 +120,7 @@ def trending(dev_key):
     }
 
     rs = __send_api_post_request(params)
-    return rs.text
+    return rs
 
 
 def paste(dev_key, code, user_key=None, name=None, format=None, private=None, expire_date=None):
@@ -142,7 +156,7 @@ def paste(dev_key, code, user_key=None, name=None, format=None, private=None, ex
     }
 
     rs = __send_api_post_request(params)
-    return rs.text
+    return rs
 
 
 def delete_paste(dev_key, user_key, paste_key):
@@ -162,7 +176,7 @@ def delete_paste(dev_key, user_key, paste_key):
     }
 
     rs = __send_api_post_request(params)
-    if rs.text.startswith('Paste Removed'):
+    if rs.startswith('Paste Removed'):
         return True
 
     return False
@@ -183,4 +197,4 @@ def user_details(dev_key, user_key):
     }
 
     rs = __send_api_post_request(params)
-    return rs.text
+    return rs

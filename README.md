@@ -2,9 +2,8 @@
 A http://pastebin.com/ API wrapper for Python 3 (#python, #python3, #pastebin, #api, #wrapper)
 
 --------------
-To work needed module [Requests](https://github.com/kennethreitz/requests)
-
-    $ pip install requests
+[Clone](https://github.com/gil9red/SimplePyScripts/blob/master/requests_example/pastebin3_requests.py) written
+using module [Requests](https://github.com/kennethreitz/requests)
 
 
 Usage Examples
