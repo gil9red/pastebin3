@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from urllib.request import urlopen
-from urllib.parse import urlencode
-
 __author__ = 'ipetrash'
 
 
-# http://pastebin.com/api
+from urllib.request import urlopen, Request
+from urllib.parse import urlencode
+
+
+# SOURCE: https://pastebin.com/doc_api
 
 
 class PastebinError(Exception):
@@ -24,8 +25,8 @@ class PastebinRequestError(PastebinError):
 
 PASTEBIN_API_VERSION = '3.1'
 
-__API_LOGIN_URL = 'http://pastebin.com/api/api_login.php'
-__API_POST_URL = 'http://pastebin.com/api/api_post.php'
+__API_LOGIN_URL = 'https://pastebin.com/api/api_login.php'
+__API_POST_URL = 'https://pastebin.com/api/api_post.php'
 
 # We have 3 valid values available which you can use with the 'api_paste_private' parameter:
 __PRIVATE_VARIANTS = {
@@ -35,7 +36,7 @@ __PRIVATE_VARIANTS = {
 }
 
 
-def __send_post_request_by_pastebin(url, params):
+def __send_post_request_by_pastebin(url: str, params: dict) -> str:
     """
 
     :param url:
@@ -49,10 +50,12 @@ def __send_post_request_by_pastebin(url, params):
         for k, v in params.items()
         if v
     }
-
     params = urlencode(params).encode('utf-8')
 
-    with urlopen(url, params) as f:
+    # POST request
+    req = Request(url, data=params)
+
+    with urlopen(req) as f:
         if f.getcode() != 200:
             raise PastebinRequestError('HTTP status code: ' + str(f.getcode()))
 
@@ -64,11 +67,11 @@ def __send_post_request_by_pastebin(url, params):
         return rs
 
 
-def __send_api_post_request(params):
+def __send_api_post_request(params: dict) -> str:
     return __send_post_request_by_pastebin(__API_POST_URL, params)
 
 
-def api_user_key(dev_key, user_name, user_password):
+def api_user_key(dev_key: str, user_name: str, user_password: str) -> str:
     """
 
     :param dev_key:
@@ -82,12 +85,10 @@ def api_user_key(dev_key, user_name, user_password):
         'api_user_name': user_name,
         'api_user_password': user_password,
     }
-
-    rs = __send_post_request_by_pastebin(__API_LOGIN_URL, params)
-    return rs
+    return __send_post_request_by_pastebin(__API_LOGIN_URL, params)
 
 
-def user_pastes(dev_key, user_key, results_limit=50):
+def user_pastes(dev_key: str, user_key: str, results_limit=50) -> str:
     """ Listing Pastes Created By A User
 
     :param dev_key:
@@ -107,7 +108,7 @@ def user_pastes(dev_key, user_key, results_limit=50):
     return rs
 
 
-def trending(dev_key):
+def trending(dev_key) -> str:
     """ Listing Trending Pastes
 
     :param dev_key:
@@ -118,12 +119,18 @@ def trending(dev_key):
         'api_dev_key': dev_key,
         'api_option': 'trends',
     }
-
-    rs = __send_api_post_request(params)
-    return rs
+    return __send_api_post_request(params)
 
 
-def paste(dev_key, code, user_key=None, name=None, format=None, private=None, expire_date=None):
+def paste(
+        dev_key: str,
+        code: str,
+        user_key: str = None,
+        name: str = None,
+        format: str = None,
+        private: str = None,
+        expire_date: str = None
+) -> str:
     """ Creating A New Paste
 
     :param dev_key:
@@ -139,7 +146,7 @@ def paste(dev_key, code, user_key=None, name=None, format=None, private=None, ex
     if private:
         private = __PRIVATE_VARIANTS.get(private.lower())
 
-        if private == 2 and user_key is None:
+        if private == 2 and not user_key:
             raise PastebinError('Private paste only allowed in combination with api_user_key, '
                                 'as you have to be logged into your account to access the paste')
 
@@ -154,12 +161,10 @@ def paste(dev_key, code, user_key=None, name=None, format=None, private=None, ex
         'api_paste_private': private,
         'api_paste_expire_date': expire_date,
     }
-
-    rs = __send_api_post_request(params)
-    return rs
+    return __send_api_post_request(params)
 
 
-def delete_paste(dev_key, user_key, paste_key):
+def delete_paste(dev_key: str, user_key: str, paste_key: str) -> bool:
     """ Deleting A Paste Created By A User
 
     :param dev_key:
@@ -176,13 +181,10 @@ def delete_paste(dev_key, user_key, paste_key):
     }
 
     rs = __send_api_post_request(params)
-    if rs.startswith('Paste Removed'):
-        return True
-
-    return False
+    return rs.startswith('Paste Removed')
 
 
-def user_details(dev_key, user_key):
+def user_details(dev_key: str, user_key: str) -> str:
     """ Getting A Users Information And Settings
 
     :param dev_key:
@@ -195,6 +197,26 @@ def user_details(dev_key, user_key):
         'api_user_key': user_key,
         'api_option': 'userdetails',
     }
+    return __send_api_post_request(params)
 
-    rs = __send_api_post_request(params)
-    return rs
+
+if __name__ == '__main__':
+    dev_key = ...
+    user_name = ...
+    user_password = ...
+    api_user_key = api_user_key(dev_key, user_name, user_password)
+    print(api_user_key)
+
+    rs = paste(dev_key, 'Yohoho!', api_user_key)
+    print(rs)
+
+    rs = paste(
+        dev_key,
+        code='int a = 10;',
+        user_key=api_user_key,
+        name='foo',
+        format='cpp',
+        private='private',
+        expire_date='10M'
+    )
+    print(rs)
